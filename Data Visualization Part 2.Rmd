@@ -1,0 +1,71 @@
+---
+title: "Untitled"
+author: "Hana Yerin Lim"
+date: "11/10/2020"
+output: html_document
+---
+```{r}
+library(readr)
+library(ggplot2)
+library(tidyverse)
+ride <- read_csv("rideshare_kaggle.csv")
+head(ride)
+```
+
+```{r}
+ride <- subset(ride, select = -c(2, 22:27, 29:57))
+ride <- na.omit(ride)
+```
+
+```{r}
+dim(ride)
+```
+
+```{r}
+str(ride)
+```
+
+# Sources / destination 
+```{r}
+library(ggplot2)
+
+sum_source <- ride %>% group_by(source) %>% summarise(n = n())
+sum_dest <- ride %>% group_by(destination) %>% summarise(n = n())
+students <- ride[(ride$source == "Boston University") | (ride$source == "Northeastern University"),] %>% group_by(destination) %>% summarise(n = n())
+
+ggplot(sum_source, aes(reorder(source, -n), n)) + geom_bar(stat = "identity") + geom_text(aes(label=n), vjust=0) + geom_text(aes(label=source), position = position_dodge(width = 1), vjust=5, colour = "pink", size = 3) + ggtitle("Most frequent sources in total")
+ggplot(sum_dest, aes(reorder(destination, -n), n)) + geom_bar(stat = "identity") + geom_text(aes(label=n), vjust=0) + geom_text(aes(label=destination), vjust=5, colour = "pink", size = 3) + ggtitle("Most frequent destinations in total")
+ggplot(students, aes(reorder(destination, -n), n)) + geom_bar(stat = "identity") + geom_text(aes(label=n), vjust=0) + geom_text(aes(label=destination), vjust=5, colour = "pink", size = 3) + ggtitle("Most frequent destinations for University students")
+```
+
+# Which weather the passengers favored to use cabs 
+```{r}
+library("tm")
+library("SnowballC")
+library("wordcloud")
+library("RColorBrewer")
+docs <- Corpus(VectorSource(ride$long_summary))
+m <- as.matrix(TermDocumentMatrix(docs))
+v <- sort(rowSums(m), decreasing = TRUE)
+words <- data.frame(word = names(v), freq = v)
+set.seed(3)
+wordcloud(words$word, freq = words$freq, colors = brewer.pal(8, "Dark2"))
+```
+
+# Time 
+```{r}
+library(treemap)
+library(highcharter)
+ride %>% group_by(hour) %>% summarise(n = n()) %>% arrange(desc(n)) %>% hchart(type = "treemap", hcaes(name = hour, x = hour, value = n, color = n))
+```
+
+# price range
+```{r}
+summary(lyft$price)
+summary(uber$price)
+
+hist(uber$price, col = "gray", density = 50, angle = 135, breaks = 40, xlim = c(0,80), main = "Histogram of Uber & Lyft price")
+hist(lyft$price, col = "magenta", density = 50, add = TRUE, breaks = 40)
+
+boxplot(lyft$price, uber$price, horizontal = TRUE)
+```
