@@ -1,0 +1,125 @@
+---
+title: "EDA_Visualization"
+author: "Shiyu Ma-Yellow Leopard"
+date: "11/11/2020"
+output:
+  prettydoc::html_pretty:
+    theme: hpstr
+    highlight: github
+    toc: true
+    toc_depth: 2
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r load}
+library(readr)
+library(dplyr)
+library(car)
+library(gplots)
+library(ggplot2)
+library(ggthemes)
+library(lubridate)
+rideshare_kaggle <- read_csv("rideshare_kaggle.csv")
+rideshare_kaggle1<- rideshare_kaggle %>% filter(price!=0)
+```
+
+## Possible Predictors for price
+### 1.type of taxi
+```{r fig.width= 8}
+
+#Convert Unix time to Boston time zone
+rideshare_kaggle1$date1<-as.POSIXct(rideshare_kaggle1$timestamp, tz="US/Eastern",origin="1970-01-01")
+rideshare_kaggle1$hour1<-factor(hour(rideshare_kaggle1$date1))
+rideshare_kaggle1$week1<-factor(weekdays(rideshare_kaggle1$date1))
+
+boxplot_type<-rideshare_kaggle1 %>% select(price,cab_type,name,distance,short_summary,hour1,week1,source,destination) %>% filter(name!="WAV") %>% filter(name!="Lux") %>% filter(price>=0)
+boxplot_type$name_f<-factor(boxplot_type$name,
+                            levels=c("UberPool","Shared","UberX","Lyft","UberXL","Lyft XL","Black","Lux Black","Black SUV","Lux Black XL"))
+
+levels(boxplot_type$name_f) <- list("Share" = c("UberPool","Shared"),
+                             "Normal" =  c("UberX","Lyft"), 
+                             "SUV" = c("UberXL","Lyft XL"),
+                             "Lux" = c("Black","Lux Black"),
+                             "Lux SUV"= c("Black SUV","Lux Black XL"))
+
+ggplot(boxplot_type,aes(name_f,price,fill=cab_type))+geom_boxplot()+ scale_fill_manual(values=c("#ea0b8c", "black"), name = " ") +scale_x_discrete(name="Product type")+scale_color_discrete(name="")+ggtitle("Uber VS Lyft: Price Comparison between similar products")+theme_bw()
+
+```
+
+### 2.hours
+```{r fig.width= 8}
+summary(lm(rideshare_kaggle1$price~factor(rideshare_kaggle1$hour1))) #LR of all hours
+
+tapply(rideshare_kaggle1$price,rideshare_kaggle1$hour1, median)
+```
+
+### 3.Distance
+```{r fig.width= 8,fig.height= 10}
+library(gridExtra)
+
+g1<-ggplot(boxplot_type,aes(distance,price,color=cab_type))+geom_point()+scale_x_continuous(name="Distance")+ scale_color_manual(values=c("#ea0b8c", "black"), name = " ")+ggtitle("Uber VS Lyft: Price Comparison on Distances")+theme_bw()
+
+g2<-ggplot(boxplot_type,aes(distance,price,colour=name_f))+geom_point(size=0.5)+scale_x_continuous(name="Distance")+scale_color_discrete(name="")+ggtitle("Different products: Price Comparison on Distances")+theme_bw()+facet_wrap(~cab_type)+geom_smooth(aes(col=name_f), method="lm",se=F)
+grid.arrange(g1,g2)
+```
+
+### 4. Heat map for weather and hours
+```{r}
+boxplot_type$weather<-factor(boxplot_type$short_summary,
+                            levels=c("Clear","Foggy","Overcast","Partly Cloudy","Mostly Cloudy","Possible Drizzle","Drizzle","Light Rain","Rain"))
+ 
+ggplot(boxplot_type, aes(name_f,weather))+
+  geom_raster(aes(fill = price))+
+  scale_fill_gradientn(colours=c("red","yellow"),name="Price")+
+  labs(title ="Uber VS Lyft: Heat Map for Product types and Weather", x = "Product types", y = "Weather")+
+  theme_bw()+facet_wrap(~cab_type)
+
+
+#remove weekend
+boxplot_type1<-boxplot_type %>% select(price,cab_type,name_f,hour1,week1) %>% filter(week1!="Sunday") %>% filter(week1!="Saturday") %>% filter(price>=0)
+
+#only weekend
+boxplot_type2<-boxplot_type %>% select(price,cab_type,name_f,hour1,week1) %>% filter(week1==c("Sunday","Saturday")) %>% filter(price>=0)
+
+ggplot(boxplot_type1, aes(name_f,hour1 ))+
+  geom_raster(aes(fill = price))+
+  scale_fill_gradientn(colours=c("red","yellow"),name="Price")+
+  labs(title ="Uber VS Lyft: Heat Map for Product types and Hours", x = "Product types", y = "Hours")+
+  theme_bw()+facet_wrap(~cab_type)
+
+ggplot(boxplot_type2, aes(name_f,hour1 ))+
+  geom_raster(aes(fill = price))+
+  scale_fill_gradientn(colours=c("red","yellow"),name="Price")+
+  labs(title ="Uber VS Lyft: Heat Map for Product types and Hours", x = "Product types", y = "Hours")+
+  theme_bw()+facet_wrap(~cab_type)
+```
+### 5. Heat map for specific location and hours
+```{r}
+#NE
+boxplot_type3<-boxplot_type %>% select(price,cab_type,name_f,hour1,week1,source, destination) %>% filter(destination=="Northeastern University") %>% filter(source=="Theatre District")  %>% filter(price>=0)
+
+ggplot(boxplot_type3, aes(name_f,hour1 ))+
+  geom_raster(aes(fill = price))+
+  scale_fill_gradientn(colours=c("red","yellow"),name="Price")+
+  labs(title ="Uber VS Lyft: Heat Map for Product types and Hours", x = "Product types", y = "Hours")+
+  theme_bw()+facet_wrap(~cab_type)
+
+```
+
+## Data Checking
+### 1.Distribution of Uber and Lyft
+```{r}
+ggplot(boxplot_type,aes(cab_type))+geom_bar(aes(fill=name_f))+
+    labs( x = "Brand",fill="Product Types")+
+  theme_bw()
+```
+
+### 2.Distribution of Weather
+```{r}
+ggplot(rideshare_kaggle1,aes(cab_type))+geom_bar(aes(fill=short_summary))+
+    labs( x = "Brand",fill="Weather")+
+  theme_bw()
+```
