@@ -1,7 +1,7 @@
-# Uber and Lyft Pricing Models Analyses
+# Uber and Lyft Pricing Model Analyses
 -- Team Yellow Leopard -- Fall 2020 -- 
 
-This repository provides explanations of the data analysis process for the DataRes article "Uber VS Lyft: How do they decide their price?", published [INSERT DATE]. Please check out our article, which contains visualizations and insights about Uber and Lyft price modeling analyses.
+This repository provides explanations of the data analysis process for the DataRes article "Uber VS Lyft: How do they decide their price?", published [INSERT DATE]. Please check out our article, which contains visualizations and insights about Uber and Lyft pricing model analyses.
 
 Contributors: Yupeng Chen, Sylvia Ma, Hana Yerin Lim, Lu Cheng, Anish Dulla
 
